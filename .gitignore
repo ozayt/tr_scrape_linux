@@ -15,3 +15,9 @@ backup/ensonhaber.db
 backup/sozcu.db
 sc0/ensonhaber.db
 sc0/sozcu.db
+sc0/eggs/
+sc0/logs/
+dbs
+runner_sere
+sc0/dbs/
+build/

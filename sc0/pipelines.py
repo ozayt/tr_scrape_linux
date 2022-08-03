@@ -10,6 +10,7 @@ from scrapy.exceptions import DropItem
 import sqlalchemy.orm
 from sc0.models import SiteMaps, Url, create_table, get_engine
 import sc0.items
+from scrapy import signals
 
 
 class Sc0Pipeline:
@@ -19,6 +20,8 @@ class Sc0Pipeline:
         Open spider
         
         """
+        #create a logger from spiders name
+        self.logger = spider.logger
         engine = get_engine(database_uri="sqlite:///" + spider.name+ ".db")
         create_table(engine)
         self.Session = sqlalchemy.orm.sessionmaker(bind=engine)
@@ -124,8 +127,10 @@ class Sc0Pipeline:
         """
         Close spider
         """
+        self.logger.info("CLOSING THE SPIDER: " + spider.name)
         self.check_url_que(None,self.session,flush=True)
         self.session.commit()
         self.session.close()
         print("Total new items inserted to database: " + str(self.item_inserted))
         print("Total items updated in database: " + str(self.item_updated))
+    

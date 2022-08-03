@@ -195,7 +195,9 @@ class EnSonHaberSitemap(CustomSitemapSpider):
             if response.url in self.start_urls:
                 yield scrapy.Request(response.url, callback=self.parse_content)
         else:
-            self.logger.info("INITIALPARSE: %s ",response.url)
+            #log the loggers name 
+            self.logger.info("Loggers name: %s",self.logger.name)
+            self.logger.info("rwar1INITIALPARSE: %s ",response.url)
             soup = bs4.BeautifulSoup(response.text,features="xml")
             locs = soup.findAll("loc")
             locs_str = [x.text for x in locs]
