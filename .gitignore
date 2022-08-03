@@ -1,0 +1,17 @@
+sc0/data.db
+backup/data0.db
+backup/data1.db
+sc0/database.py
+sc0/spiders/__pycache__/__init__.cpython-310.pyc
+sc0/spiders/__pycache__/text_spider.cpython-310.pyc
+sc0/__pycache__/__init__.cpython-310.pyc
+sc0/__pycache__/database_obs.cpython-310.pyc
+sc0/__pycache__/database.cpython-310.pyc
+sc0/__pycache__/items.cpython-310.pyc
+sc0/__pycache__/models.cpython-310.pyc
+sc0/__pycache__/pipelines.cpython-310.pyc
+sc0/__pycache__/settings.cpython-310.pyc
+backup/ensonhaber.db
+backup/sozcu.db
+sc0/ensonhaber.db
+sc0/sozcu.db
