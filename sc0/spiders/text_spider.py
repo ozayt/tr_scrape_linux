@@ -9,13 +9,16 @@ import datetime
 import sc0.database_obs
 import sc0.items
 from sc0.models import SiteMaps , Url
-
+import signal
+import scrapy.signals
+from scrapy.signalmanager import SignalManager
 class CustomSitemapSpider(scrapy.Spider):
 
     def __init__(self, db:sc0.database_obs.DatabaseObserver,*args, **kwargs):
         self.db = db
         self.scrape_unscraped_db  = False
         super().__init__(*args, **kwargs)
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
 
     def reqs_items_from_sitemapindex(self , newest_sitemap_loc:str , 
     other_sitemap_locs_newest_to_oldest:list[str])->tuple[list[scrapy.Request],list[sc0.items.SiteMapItem]]:
@@ -56,6 +59,12 @@ class CustomSitemapSpider(scrapy.Spider):
         else:
             yield sc0.items.UrlItem(text_content=text, url=response.url,scraped=True)
 
+    def sigterm_handler(self, signum, frame):
+        self.logger.info("SIGTERM received. Closing spider")
+        sm = SignalManager()
+        sm.send_catch_log(scrapy.signals.spider_closed)
+        
+        
 
 class TbmmTutanakSpider(scrapy.Spider):
     name = 'tbmm'
@@ -63,7 +72,7 @@ class TbmmTutanakSpider(scrapy.Spider):
     start_urls = [
         'https://www.tbmm.gov.tr/Tutanaklar/TutanakMetinleri']
     scraped_url= 0 
-
+    in_memory_item_max = 100
     def parse(self, response, **kwargs):
         soup = bs4.BeautifulSoup(response.text, 'lxml')
         elements = soup.find_all("table", {"class": "table table-striped"})
@@ -79,20 +88,22 @@ class TbmmTutanakSpider(scrapy.Spider):
                 rows =table_element.find_all("tr")
                 for row in rows:
                     first_href = next(row.children, None)
-                    #TODO remove and part
-                    if first_href is not None and self.scraped_url < 2:
-                        #yield tutanak link
-                        self.scraped_url += 1
-                        self.logger.info("YIELDING TBMM RECORD TO SCRAPE")
+                     #yield tutanak link
+                    self.scraped_url += 1
+                    self.logger.info("YIELDING TBMM RECORD TO SCRAPE")
+                    if(first_href !=None):
                         yield scrapy.Request(response.urljoin(first_href.find("a", {"href":True}).get("href")), callback=self.parse_tutanak)
 
     def parse_tutanak(self, response, **kwargs):
-        soup = bs4.BeautifulSoup(response.text, 'lxml')
-        element = soup.find("body")
-        self.logger.debug("SCRAPING TBMM RECORD")
-        if isinstance(element, bs4.PageElement):
-            self.scraped_url += 1
-            yield {"url": response.url, "text": element.text}
+        self.logger.debug("CONTENTPARSE: %s ",response.url)
+        text = trafilatura.baseline(response.text)[1]
+        yield sc0.items.UrlItem(text_content=text, url=response.url,scraped=True)
+        # soup = bs4.BeautifulSoup(response.text, 'lxml')
+        # element = soup.find("body")
+        # self.logger.debug("SCRAPING TBMM RECORD")
+        # if isinstance(element, bs4.PageElement):
+        #     self.scraped_url += 1
+        #     yield {"url": response.url, "text": element.text}
     
 class SozcuSitemap(CustomSitemapSpider):
     name="sozcu"
@@ -103,7 +114,7 @@ class SozcuSitemap(CustomSitemapSpider):
             scrape_unscraped_db (bool, optional): Defaults to False. If True, will scrape the  
             unscraped content pages that are stored in the database instead of crawling the sitemap for new content pages.
         """
-        super().__init__(name, **kwargs)
+        super().__init__(name=name, **kwargs)
         self.db = sc0.database_obs.DatabaseObserver(database_uri="sqlite:///"+ "sozcu" +".db")
         if scrape:
             self.start_urls = self.db.get_unscraped_urls_as_str()
@@ -177,7 +188,7 @@ class EnSonHaberSitemap(CustomSitemapSpider):
             autoscrape (bool, optional): Defaults to False. If True, will scrape the content pages automatically.
             scrape_unscraped_db (bool,
         """
-        super().__init__(name, **kwargs)
+        super().__init__(name=name, **kwargs)
         self.db = sc0.database_obs.DatabaseObserver(database_uri="sqlite:///"+ "ensonhaber" +".db")
         if scrape:
             self.start_urls = self.db.get_unscraped_urls_as_str()
@@ -234,3 +245,38 @@ class EnSonHaberSitemap(CustomSitemapSpider):
         self.logger.info("Adding sitemap to db")
         yield sc0.items.SiteMapItem(loc=response.url,lastUrl=sitemap_lastUrl,current_latest = sitemap_current_latest)
 
+class HaberlerSitemap(EnSonHaberSitemap):
+    name="haberler"
+    def __init__(self, name=None,autoscrape=False,scrape = False, **kwargs):
+        super().__init__(name, autoscrape,scrape)
+        self.db = sc0.database_obs.DatabaseObserver(database_uri="sqlite:///"+ "haberler" +".db")
+        if scrape:
+            self.start_urls = self.db.get_unscraped_urls_as_str()
+        else:
+            self.start_urls = ["https://www.haberler.com/sitemap_news.xml"]
+
+    def parse_period(self, response):
+        self.logger.info("PERIODPARSE: %s ",response.url)
+        soup = bs4.BeautifulSoup(response.text,features="xml")
+        urls = soup.findAll("url")
+        try:
+            sitemap_lastUrl = urls[0].find("loc").text
+        except IndexError as ie: 
+            self.logger.error("IndexError: %s",ie)
+            sitemap_lastUrl = "NOURL"
+        sitemap_current_latest = response.meta["current_latest"]
+        for url in urls:
+            loc = url.find("loc")
+            loc_text= loc.text.strip()
+            lastmod = url.find("lastmod")
+            
+
+            if self.autoscrape:
+                yield scrapy.Request(loc_text, callback=self.parse_content)
+            else:
+                yield sc0.items.UrlItem(url=loc_text,scraped = False)
+            
+        self.logger.info("Looped through all urls and yielded a content parse request for %s", response.url)
+        self.logger.info("Adding sitemap to db")
+        yield sc0.items.SiteMapItem(loc=response.url,lastUrl=sitemap_lastUrl,current_latest = sitemap_current_latest)
+        
