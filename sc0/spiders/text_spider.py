@@ -114,7 +114,7 @@ class SozcuSitemap(CustomSitemapSpider):
             scrape_unscraped_db (bool, optional): Defaults to False. If True, will scrape the  
             unscraped content pages that are stored in the database instead of crawling the sitemap for new content pages.
         """
-        super().__init__(name=name, **kwargs)
+        super().__init__(None, **kwargs)  # type: ignore
         self.db = sc0.database_obs.DatabaseObserver(database_uri="sqlite:///"+ "sozcu" +".db")
         if scrape:
             self.start_urls = self.db.get_unscraped_urls_as_str()
@@ -188,7 +188,7 @@ class EnSonHaberSitemap(CustomSitemapSpider):
             autoscrape (bool, optional): Defaults to False. If True, will scrape the content pages automatically.
             scrape_unscraped_db (bool,
         """
-        super().__init__(name=name, **kwargs)
+        super().__init__(None, **kwargs)  # type: ignore
         self.db = sc0.database_obs.DatabaseObserver(database_uri="sqlite:///"+ "ensonhaber" +".db")
         if scrape:
             self.start_urls = self.db.get_unscraped_urls_as_str()
