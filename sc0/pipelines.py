@@ -11,9 +11,13 @@ import sqlalchemy.orm
 from sc0.models import SiteMaps, Url, create_table, get_engine
 import sc0.items
 from scrapy import signals
+import signal
 
 
 class Sc0Pipeline:
+    def __init__(self):
+        #handle SIGTERM gracefully
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
 
     def open_spider(self, spider):
         """
@@ -127,10 +131,16 @@ class Sc0Pipeline:
         """
         Close spider
         """
-        self.logger.info("CLOSING THE SPIDER: " + spider.name)
+        if spider != None:
+            self.logger.info("CLOSING THE SPIDER: " + spider.name)
         self.check_url_que(None,self.session,flush=True)
         self.session.commit()
         self.session.close()
         print("Total new items inserted to database: " + str(self.item_inserted))
         print("Total items updated in database: " + str(self.item_updated))
+
+    def sigterm_handler(self, signum, frame):
+        self.logger.info("SIGTERM received, closing the spider")
+        self.close_spider(None)
+        
     

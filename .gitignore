@@ -21,3 +21,11 @@ dbs
 runner_sere
 sc0/dbs/
 build/
+sc0/dbs/sc0.db
+project.egg-info/dependency_links.txt
+project.egg-info/entry_points.txt
+project.egg-info/PKG-INFO
+project.egg-info/SOURCES.txt
+project.egg-info/top_level.txt
+sc0/tbmm.db
+sc0/haberler.db
