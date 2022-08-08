@@ -32,10 +32,3 @@ class SiteMaps(Base):
     loc = Column(String)
     lastUrl = Column(String)
     current_latest = Column(Boolean)
-
-
-
-
-
-
-

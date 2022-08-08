@@ -34,7 +34,7 @@ class Sc0Pipeline:
         self.item_updated = 0
         self.urls_to_be_checked = []
         self.session = self.Session()
-        self.commit_number = 10
+        self.commit_number = 1000
         print("Sc0Pipeline initialized for " + spider.name)
 
 
@@ -63,11 +63,11 @@ class Sc0Pipeline:
         try:
             #if item is a Url
             if type(item) == sc0.items.UrlItem:
-                now = time.time()
+                #now = time.time()
                 session.query(Url).filter(Url.url == item.get('url')).update(
                     {"text_content": item.get('text_content'), "scraped": item.get('scraped')})
-                time_took_ms = (time.time() - now) * 1000
-                print("Time took to update url: " + str(time_took_ms) + "ms")
+                #time_took_ms = (time.time() - now) * 1000
+                #print("Time took to update url: " + str(time_took_ms) + "ms")
                 self.item_updated += 1
                 self.commit_periodically(session)
             elif type(item) == sc0.items.SiteMapItem:

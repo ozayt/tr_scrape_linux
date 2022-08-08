@@ -51,7 +51,6 @@ class CustomSitemapSpider(scrapy.Spider):
         pass
 
     def parse_content(self,response,**kwargs):
-        self.logger.debug("CONTENTPARSE: %s ",response.url)
         text = trafilatura.baseline(response.text)[1]
         if not self.scrape_unscraped_db:
             lastmod = response.meta["lastmod"]
@@ -203,8 +202,21 @@ class EnSonHaberSitemap(CustomSitemapSpider):
         
     def parse(self,response,**kwargs):
         if self.scrape_unscraped_db:
-            if response.url in self.start_urls:
-                yield scrapy.Request(response.url, callback=self.parse_content)
+            if "redirect_times" in response.meta:
+                m_url = response.meta["redirect_urls"][0]
+            else:
+                m_url  = response.url
+            if m_url in self.start_urls:
+                if response.status == 200:
+                    text = trafilatura.baseline(response.text)[1]
+                    if not self.scrape_unscraped_db:
+                        lastmod = response.meta["lastmod"]
+                        yield sc0.items.UrlItem(text_content=text, lastmod=lastmod, url=m_url, scraped=True)
+                    else:
+                        yield sc0.items.UrlItem(text_content=text, url=m_url, scraped=True)
+                else:
+                    self.logger.warning("Got status %s for %s",response.status,response.url)
+                    yield sc0.items.UrlItem(url=response.url,scraped = True , text_content = None)
         else:
             #log the loggers name 
             self.logger.info("Loggers name: %s",self.logger.name)
@@ -279,4 +291,3 @@ class HaberlerSitemap(EnSonHaberSitemap):
         self.logger.info("Looped through all urls and yielded a content parse request for %s", response.url)
         self.logger.info("Adding sitemap to db")
         yield sc0.items.SiteMapItem(loc=response.url,lastUrl=sitemap_lastUrl,current_latest = sitemap_current_latest)
-        

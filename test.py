@@ -34,3 +34,10 @@ def test_trafilatura_bare(url="https://www.sozcu.com.tr/hayatim/magazin-haberler
 
     return trafilatura.baseline(html)
 
+def test_sitemap(url = "https://eksisozluk.com/sitemap.xml"):
+    response = requests.get(url)
+    soup = bs4.BeautifulSoup(response.text,features="xml")
+    locs = soup.findAll("loc")
+    return locs
+
+test_sitemap()

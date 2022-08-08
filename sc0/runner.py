@@ -8,7 +8,7 @@ try:
         [
             'scrapy',
             'crawl',
-            'tbmm',
+            'eksisozluk',
             #'-a',
             #'scrape=True',
         ]
