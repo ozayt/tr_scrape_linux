@@ -34,6 +34,7 @@ class Sc0Pipeline:
         self.item_updated = 0
         self.urls_to_be_checked = []
         self.session = self.Session()
+        self.commit_number = 10
         print("Sc0Pipeline initialized for " + spider.name)
 
 
@@ -62,8 +63,11 @@ class Sc0Pipeline:
         try:
             #if item is a Url
             if type(item) == sc0.items.UrlItem:
+                now = time.time()
                 session.query(Url).filter(Url.url == item.get('url')).update(
                     {"text_content": item.get('text_content'), "scraped": item.get('scraped')})
+                time_took_ms = (time.time() - now) * 1000
+                print("Time took to update url: " + str(time_took_ms) + "ms")
                 self.item_updated += 1
                 self.commit_periodically(session)
             elif type(item) == sc0.items.SiteMapItem:
@@ -101,21 +105,21 @@ class Sc0Pipeline:
                 session.add(url)
                 self.item_inserted += 1
                 self.commit_periodically(session)
-            #if self.bulk_insert_item_list has more then 1000 items, insert them to database
+            #if self.bulk_insert_item_list has more then self.commit_number items, insert them to database
             
         except Exception as e:
             raise DropItem("!Error inserting item to database: " + str(e))
 
     def commit_periodically(self,session):
         self.item_commited += 1
-        if self.item_commited % 1000 == 0:
+        if self.item_commited % self.commit_number == 0:
             session.commit()
             self.item_commited = 0
 
     def check_url_que(self,url_item,session,flush=False):
         if not flush:
             self.urls_to_be_checked.append(url_item)
-        if len(self.urls_to_be_checked)%1000 == 0 or flush:
+        if len(self.urls_to_be_checked)%self.commit_number == 0 or flush:
             url_list = [it.get("url") for it in self.urls_to_be_checked]
             q  = session.query(Url).filter(Url.url.in_(url_list))
             records = q.all()
