@@ -1,3 +1,4 @@
+from urllib import request
 import sc0.database_obs
 import sqlalchemy.orm
 from sc0.models import SiteMaps, Url, create_table, get_engine
@@ -5,9 +6,11 @@ import trafilatura
 import bs4
 import datetime
 import requests
+import psycopg2
 
-db = sc0.database_obs.DatabaseObserver(echo=True,database_uri="sqlite:///sc0/data.db")
-sesion = db.Session()
+DATABASE_URI = 'postgresql+psycopg2://Next4bizTurkishCorpus:QwNozBL9YgpQ5OEi@192.168.1.164:5432/Next4bizTurkishCorpus'
+DATABASE_URI_LOCAL =  'postgresql+psycopg2://Next4bizTurkishCorpus:QwNozBL9YgpQ5OEi@localhost:5432/Next4bizTurkishCorpus'
+
 #TESTS 
 # q = [obj[0] for obj in sesion.query(Url.url).filter(Url.scraped == False).all()]
 
@@ -40,4 +43,10 @@ def test_sitemap(url = "https://eksisozluk.com/sitemap.xml"):
     locs = soup.findAll("loc")
     return locs
 
-test_sitemap()
+def create_postgres_engine(uri = DATABASE_URI_LOCAL):
+    engine = get_engine(database_uri=uri)
+    return engine
+
+def create_postgres_tables():
+    engine = create_postgres_engine()
+    create_table(engine)

@@ -30,3 +30,10 @@ project.egg-info/top_level.txt
 sc0/tbmm.db
 sc0/haberler.db
 sc0/eksisozluk.db
+.idea/.gitignore
+.idea/dataSources.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/tr_scrape_linux.iml
+.idea/vcs.xml
+.idea/inspectionProfiles/profiles_settings.xml

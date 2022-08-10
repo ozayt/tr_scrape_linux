@@ -8,11 +8,14 @@
 import time
 from scrapy.exceptions import DropItem
 import sqlalchemy.orm
-from sc0.models import SiteMaps, Url, create_table, get_engine
+# from sc0.models import SiteMaps, Url, create_table, get_engine
+import sc0.models
 import sc0.items
 from scrapy import signals
 import signal
 
+#TODO delete this
+DATABASE_URI_LOCAL =  'postgresql+psycopg2://Next4bizTurkishCorpus:QwNozBL9YgpQ5OEi@localhost:5432/Next4bizTurkishCorpus'
 
 class Sc0Pipeline:
     def __init__(self):
@@ -24,25 +27,37 @@ class Sc0Pipeline:
         Open spider
         
         """
-        #create a logger from spiders name
-        self.logger = spider.logger
-        engine = get_engine(database_uri="sqlite:///" + spider.name+ ".db")
-        create_table(engine)
-        self.Session = sqlalchemy.orm.sessionmaker(bind=engine)
-        self.item_commited= 0
-        self.item_inserted = 0
-        self.item_updated = 0
-        self.urls_to_be_checked = []
-        self.session = self.Session()
-        self.commit_number = 1000
-        print("Sc0Pipeline initialized for " + spider.name)
+        if spider.name == "eksisozluk":
+            self.engine = sc0.models.get_engine()
+            self.session = sqlalchemy.orm.Session(bind=self.engine)
+            self.commit_number = 1000
+            self.item_inserted = 0
+            self.item_updated = 0
+            self.item_commited = 0
+            self.urls_to_be_checked = []
+            self.logger = spider.logger
+            self.logger.info("Spider opened")
+            self.db_module = sc0.models
+        else:
+            self.logger = spider.logger
+            engine = sc0.models.get_engine(database_uri=DATABASE_URI_LOCAL)
+            sc0.models.create_table(engine)
+            self.Session = sqlalchemy.orm.sessionmaker(bind=engine)
+            self.item_commited= 0
+            self.item_inserted = 0
+            self.item_updated = 0
+            self.urls_to_be_checked = []
+            self.session = self.Session()
+            self.commit_number = 1000
+            self.db_module = sc0.models
+            print("Sc0Pipeline initialized for " + spider.name)
 
 
     def process_item(self, item, spider):
         try:
             if type(item) == sc0.items.SiteMapItem:
                 #check if record exists in SiteMaps table
-                if self.session.query(SiteMaps).filter(SiteMaps.loc == item.get('loc')).first() is not None:
+                if self.session.query(self.db_module.SiteMaps).filter(self.db_module.SiteMaps.loc == item.get('loc')).first() is not None:
                     print("Sitemap already exists in database will update lastUrl")
                     self.update_db_row_bulk(item,self.session)
                 else:
@@ -64,7 +79,7 @@ class Sc0Pipeline:
             #if item is a Url
             if type(item) == sc0.items.UrlItem:
                 #now = time.time()
-                session.query(Url).filter(Url.url == item.get('url')).update(
+                session.query(self.db_module.Url).filter(self.db_module.Url.url == item.get('url')).update(
                     {"text_content": item.get('text_content'), "scraped": item.get('scraped')})
                 #time_took_ms = (time.time() - now) * 1000
                 #print("Time took to update url: " + str(time_took_ms) + "ms")
@@ -72,7 +87,7 @@ class Sc0Pipeline:
                 self.commit_periodically(session)
             elif type(item) == sc0.items.SiteMapItem:
                 #if item is a SiteMap
-                session.query(SiteMaps).filter(SiteMaps.loc == item.get('loc')).update(
+                session.query(self.db_module.SiteMaps).filter(self.db_module.SiteMaps.loc == item.get('loc')).update(
                     {"lastUrl": item.get('lastUrl') , "current_latest" : item.get('current_latest')})
                 self.item_updated += 1
                 self.commit_periodically(session)
@@ -89,7 +104,7 @@ class Sc0Pipeline:
         """
         try:
             if type(item) == sc0.items.SiteMapItem:
-                sitemaps = SiteMaps()
+                sitemaps = self.db_module.SiteMaps()
                 sitemaps.loc = item.get("loc") 
                 sitemaps.lastUrl = item.get("lastUrl")
                 sitemaps.current_latest = item.get("current_latest") 
@@ -97,7 +112,7 @@ class Sc0Pipeline:
                 self.item_inserted += 1
                 self.commit_periodically(session)
             elif type(item) == sc0.items.UrlItem :
-                url = Url()
+                url = self.db_module.Url()
                 url.text_content = item.get("text_content") 
                 url.url = item.get("url") 
                 url.lastmod = item.get("lastmod") 
@@ -121,7 +136,7 @@ class Sc0Pipeline:
             self.urls_to_be_checked.append(url_item)
         if len(self.urls_to_be_checked)%self.commit_number == 0 or flush:
             url_list = [it.get("url") for it in self.urls_to_be_checked]
-            q  = session.query(Url).filter(Url.url.in_(url_list))
+            q  = session.query(self.db_module.Url).filter(self.db_module.Url.url.in_(url_list))
             records = q.all()
             urls_in_records = [it.url for it in records]
             for it in self.urls_to_be_checked:

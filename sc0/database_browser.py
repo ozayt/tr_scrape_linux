@@ -23,4 +23,4 @@ if __name__ =="__main__":
     all_urls = db.get_all_urls()
     print("Scraped url count " + str(len(scraped_urls)))
     print("All url count " + str(len(all_urls)))
-
+    db.conn.close()

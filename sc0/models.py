@@ -25,6 +25,7 @@ class Url(Base):
     url = Column(String(2048), index=True)
     lastmod = Column(DateTime)
     scraped = Column(Boolean)
+    last_page_scraped = Column(Integer)
     
 class SiteMaps(Base):
     __tablename__ = "sitemaps" 
@@ -32,3 +33,19 @@ class SiteMaps(Base):
     loc = Column(String)
     lastUrl = Column(String)
     current_latest = Column(Boolean)
+
+class User(Base):
+    __tablename__ = "users" 
+    id = Column(Integer, primary_key=True)
+    username = Column(String)
+
+
+class Entry(Base):
+    __tablename__ = "entries" 
+    id = Column(Integer, primary_key=True)
+    url_id = Column(Integer, ForeignKey('urls.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user_name = Column(String,index=True)
+    text_content = Column(Text)
+    fav_count = Column(Integer)
+    date_time = Column(DateTime)

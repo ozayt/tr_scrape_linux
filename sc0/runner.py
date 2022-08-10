@@ -8,9 +8,9 @@ try:
         [
             'scrapy',
             'crawl',
-            'eksisozluk',
-            #'-a',
-            #'scrape=True',
+            'sozcu',
+            # '-a',
+            # 'scrape=True',
         ]
     )
 except SystemExit:

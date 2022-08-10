@@ -12,6 +12,10 @@ from sc0.models import SiteMaps , Url
 import signal
 import scrapy.signals
 from scrapy.signalmanager import SignalManager
+
+#TODO delete
+DATABASE_URI_LOCAL =  'postgresql+psycopg2://Next4bizTurkishCorpus:QwNozBL9YgpQ5OEi@localhost:5432/Next4bizTurkishCorpus'
+
 class CustomSitemapSpider(scrapy.Spider):
 
     def __init__(self, db:sc0.database_obs.DatabaseObserver,*args, **kwargs):
@@ -114,7 +118,7 @@ class SozcuSitemap(CustomSitemapSpider):
             unscraped content pages that are stored in the database instead of crawling the sitemap for new content pages.
         """
         super().__init__(None, **kwargs)  # type: ignore
-        self.db = sc0.database_obs.DatabaseObserver(database_uri="sqlite:///"+ "sozcu" +".db")
+        self.db = sc0.database_obs.DatabaseObserver(database_uri=DATABASE_URI_LOCAL)
         if scrape:
             self.start_urls = self.db.get_unscraped_urls_as_str()
         else:
